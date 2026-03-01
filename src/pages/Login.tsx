@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { UserType, UserProfile } from '../types';
 import { signIn, signUp, resetPassword } from '../lib/auth';
 
 interface LoginProps {
   setIsAuthenticated: (value: boolean) => void;
-  setCurrentView: (view: 'home' | 'profile' | 'messages' | 'wallet') => void;
+  setCurrentView: (view: 'home' | 'profile' | 'messages' | 'wallet') => void; // Deprecated
   setUserType: (type: UserType) => void;
   setUserProfile: (profile: UserProfile) => void;
 }
@@ -16,6 +17,7 @@ const Login: React.FC<LoginProps> = ({
   setUserType,
   setUserProfile
 }) => {
+  const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isPro, setIsPro] = useState(false);
@@ -110,7 +112,7 @@ const Login: React.FC<LoginProps> = ({
       setUserProfile(result.user);
       setUserType(result.user.userType);
       setIsAuthenticated(true);
-      setCurrentView(isLoginMode ? 'home' : 'profile');
+      navigate(isLoginMode ? '/' : '/profile');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
@@ -120,7 +122,7 @@ const Login: React.FC<LoginProps> = ({
 
   const handleSkipLogin = () => {
     setIsAuthenticated(false);
-    setCurrentView('home');
+    navigate('/');
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

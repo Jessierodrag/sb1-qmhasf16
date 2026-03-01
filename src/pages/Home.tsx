@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Profile, UserProfile } from '../types';
 import ProfileModal from '../components/modals/ProfileModal';
 import ReviewsModal from '../components/modals/ReviewsModal';
@@ -15,7 +16,7 @@ interface HomeProps {
   isAuthenticated: boolean;
   userProfile: UserProfile | null;
   selectedLocation: string | null;
-  onNavigateToLogin: () => void;
+  onNavigateToLogin: () => void; // Deprecated
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -24,6 +25,7 @@ const Home: React.FC<HomeProps> = ({
   selectedLocation,
   onNavigateToLogin
 }) => {
+  const navigate = useNavigate();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
@@ -125,11 +127,6 @@ const Home: React.FC<HomeProps> = ({
   }, [selectedLocation]);
 
   const handleContact = async (profile: Profile) => {
-      id: profile.id,
-      name: profile.name,
-      userId: profile.userId
-    });
-
     // Afficher le modal de connexion si l'utilisateur n'est pas connecté
     if (!isAuthenticated || !userProfile) {
       setShowLoginPrompt(true);
@@ -319,7 +316,7 @@ const Home: React.FC<HomeProps> = ({
           onClose={() => setShowLoginPrompt(false)}
           onLogin={() => {
             setShowLoginPrompt(false);
-            onNavigateToLogin();
+            navigate('/login');
           }}
         />
       )}

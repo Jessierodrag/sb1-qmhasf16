@@ -111,11 +111,6 @@ export const addReview = async (
       return { review: mappedReview, error: null };
     } else {
       // Create new review
-        to_user_id: profileId,
-        from_user_id: user.id,
-        rating,
-        comment
-      });
 
       const { data, error } = await supabase
         .from('reviews')
@@ -341,11 +336,6 @@ export const addPostReview = async (
       return { review: data, error: null };
     } else {
       // Create new review
-        post_id: postId,
-        user_id: user.id,
-        rating,
-        comment
-      });
 
       const { data, error } = await supabase
         .from('post_reviews')

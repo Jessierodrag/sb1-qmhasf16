@@ -43,11 +43,6 @@ export const useDashboardStats = (userId: string | null | undefined) => {
         receivedLikes: likesResult.count,
         receivedReviews: reviewsResult.count
       });
-
-        views: viewsResult.count,
-        likes: likesResult.count,
-        reviews: reviewsResult.count
-      });
     } catch (err) {
       console.error('[useDashboardStats] Erreur:', err);
     } finally {

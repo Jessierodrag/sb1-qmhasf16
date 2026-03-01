@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Header from './components/Header';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedRoute from './components/ProtectedRoute';
+import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Messages from './pages/Messages';
@@ -8,93 +11,32 @@ import Subscription from './pages/Subscription';
 import Login from './pages/Login';
 import PublicProfile from './pages/PublicProfile';
 import Admin from './pages/Admin';
-import AgeVerification from './components/AgeVerification';
-import BottomNav from './components/BottomNav';
 import ChatModal from './components/modals/ChatModal';
 import ProfileModal from './components/modals/ProfileModal';
-import { Notification, UserProfile, Transaction, Conversation, Profile as ProfileType, Message, UserType } from './types';
-import { getCurrentUser, signOut } from './lib/auth';
-import { X, LogIn, UserPlus, User, Wallet as WalletIcon, Sparkles, Crown, BadgeCheck, Shield } from 'lucide-react';
-import { useUnreadMessages } from './hooks/useUnreadMessages';
-import { useNotifications } from './hooks/useNotifications';
-import { userProfileToProfile } from './lib/profile';
-import { type SubscriptionTier } from './lib/subscriptions';
-import { checkIsAdmin } from './lib/admin';
+import { useAuth } from './hooks/useAuth';
+import { Transaction, Conversation, Profile as ProfileType, Message, UserProfile, type SubscriptionTier } from './types';
+import { X, LogIn, UserPlus, User, Sparkles, Crown, BadgeCheck, Shield } from 'lucide-react';
 
-const defaultUserProfile: UserProfile = {
-  id: '1',
-  name: 'Thomas',
-  firstName: 'Thomas',
-  lastName: 'Dupont',
-  username: 'Thomas',
-  location: 'Paris',
-  description: 'Passionné de photographie et de voyages',
-  interests: ['Photographie', 'Voyage', 'Art'],
-  photos: [
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400'
-  ],
-  physicalInfo: {
-    sexe: "Homme",
-    ethnique: "Caucasien",
-    nationalite: "Français",
-    age: 28,
-    yeux: "Bleus",
-    taille: "180 cm",
-    poids: "75 kg",
-    cheveux: "Brun",
-    mensurations: "",
-    poitrine: "",
-    bonnet: "",
-    tour_poitrine: "",
-    epilation: ""
-  },
-  personalInfo: {
-    alcool: "Occasionnellement",
-    fumeur: "Non",
-    langues: ["Français", "Anglais"],
-    orientation: "Hétérosexuel",
-    origine: "Français"
-  },
-  prestations: "Photographie professionnelle, retouche photo",
-  userType: 'client' as const
-};
+const AppContent = () => {
+  const { 
+    isAuthenticated, 
+    isAdmin, 
+    userType, 
+    userProfile, 
+    setUserProfile,
+    setUserType,
+    handleLogout,
+    handleLogin
+  } = useAuth();
 
-const App = () => {
-  const [showAgeVerification, setShowAgeVerification] = useState(true);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('50');
-  const [currentView, setCurrentView] = useState<'home' | 'profile' | 'messages' | 'login' | 'wallet' | 'subscription' | 'viewProfile' | 'admin'>('home');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [showMessage, setShowMessage] = useState(false);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [messageText, setMessageText] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<ProfileType | null>(null);
-  const [newComment, setNewComment] = useState('');
-  const [newRating, setNewRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [userType, setUserType] = useState<UserType>('client');
   const [showChatModal, setShowChatModal] = useState(false);
   const [selectedProfileForChat, setSelectedProfileForChat] = useState<ProfileType | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedProfileForModal, setSelectedProfileForModal] = useState<ProfileType | null>(null);
   const [viewedUserProfile, setViewedUserProfile] = useState<UserProfile | null>(null);
   const [autoOpenSubscriptionTier, setAutoOpenSubscriptionTier] = useState<SubscriptionTier | null>(null);
-
-  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem('userProfile');
-    return saved ? JSON.parse(saved) : defaultUserProfile;
-  });
-
-  // Utiliser le hook pour les notifications réelles
-  const { notifications, unreadCount: notificationsUnreadCount, markAllAsRead } = useNotifications(
-    isAuthenticated ? userProfile?.user_id || userProfile?.id : null
-  );
+  const [showMenu, setShowMenu] = useState(false);
 
   const [walletBalance, setWalletBalance] = useState(() => {
     const saved = localStorage.getItem('walletBalance');
@@ -116,84 +58,12 @@ const App = () => {
     return saved ? JSON.parse(saved) : {};
   });
 
-  // Hook pour récupérer le nombre de messages non lus
-  const { unreadCount, refresh: refreshUnreadCount } = useUnreadMessages(
-    isAuthenticated ? userProfile?.user_id || userProfile?.id : null
-  );
-
-  // Rafraîchir le compteur quand on quitte la page messages ou ferme le chat
   useEffect(() => {
-    if (!showChatModal) {
-      refreshUnreadCount();
-    }
-  }, [showChatModal, refreshUnreadCount]);
-
-  useEffect(() => {
-    if (currentView !== 'messages') {
-      refreshUnreadCount();
-    }
-  }, [currentView, refreshUnreadCount]);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { user, error } = await getCurrentUser();
-      if (user && !error) {
-        setUserProfile(user);
-        setUserType(user.userType);
-        setIsAuthenticated(true);
-
-        const adminStatus = await checkIsAdmin(user.userId || user.user_id || '');
-        setIsAdmin(adminStatus);
-      }
-    };
-
-    checkSession();
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('userProfile', JSON.stringify(userProfile));
-    localStorage.setItem('user', JSON.stringify(userProfile));
     localStorage.setItem('walletBalance', JSON.stringify(walletBalance));
     localStorage.setItem('transactions', JSON.stringify(transactions));
     localStorage.setItem('conversations', JSON.stringify(conversations));
     localStorage.setItem('conversationsMessages', JSON.stringify(conversationsMessages));
-  }, [userProfile, walletBalance, transactions, conversations, conversationsMessages]);
-
-  const handleAcceptAge = () => {
-    setShowAgeVerification(false);
-  };
-
-  const handleDeclineAge = () => {
-    window.location.href = 'https://www.google.com';
-  };
-
-  const handleLogout = async () => {
-    const { error } = await signOut();
-    if (!error) {
-      setIsAuthenticated(false);
-      setCurrentView('home');
-      setShowMenu(false);
-      setUserProfile(defaultUserProfile);
-      // Les notifications sont maintenant gérées par le hook useNotifications
-      setWalletBalance(0);
-      setTransactions([]);
-      setConversations([]);
-      setConversationsMessages({});
-      setShowMessage(false);
-      setShowComments(false);
-      setShowLoginPrompt(false);
-      setMessageText('');
-      setSearchQuery('');
-      setShowNotifications(false);
-      setSelectedProfile(profiles[0]);
-      setNewComment('');
-      setNewRating(0);
-      setHoverRating(0);
-      setUserType('client');
-    } else {
-      console.error('Logout error:', error);
-    }
-  };
+  }, [walletBalance, transactions, conversations, conversationsMessages]);
 
   const handleNewPost = async (post: {
     photos: string[];
@@ -201,7 +71,6 @@ const App = () => {
     tags: string[];
     caption: string;
   }) => {
-    // Les notifications sont maintenant gérées automatiquement par les triggers
     window.dispatchEvent(new CustomEvent('postCreated'));
   };
 
@@ -222,8 +91,6 @@ const App = () => {
     };
     
     setTransactions(prev => [newTransaction, ...prev]);
-
-    // Les notifications sont maintenant gérées automatiquement
   };
 
   const handleSearchResultClick = (profile: ProfileType) => {
@@ -233,108 +100,132 @@ const App = () => {
 
   const handleViewProfile = (profile: UserProfile) => {
     setViewedUserProfile(profile);
-    setCurrentView('viewProfile');
   };
 
-  if (showAgeVerification) {
-    return <AgeVerification onAccept={handleAcceptAge} onDecline={handleDeclineAge} />;
-  }
+  const wrappedHandleLogout = async () => {
+    const success = await handleLogout();
+    if (success) {
+      setWalletBalance(0);
+      setTransactions([]);
+      setConversations([]);
+      setConversationsMessages({});
+      setShowChatModal(false);
+      setShowProfileModal(false);
+      setShowMenu(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-dark text-gray-200">
-      <Header
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        showNotifications={showNotifications}
-        setShowNotifications={setShowNotifications}
-        notifications={notifications}
-        notificationsUnreadCount={notificationsUnreadCount}
-        onMarkAllNotificationsRead={markAllAsRead}
-        showMenu={showMenu}
-        setShowMenu={setShowMenu}
-        setIsAuthenticated={setIsAuthenticated}
-        isAuthenticated={isAuthenticated}
-        handleLogout={handleLogout}
-        userType={userType}
-        onSearchResultClick={handleSearchResultClick}
-      />
-
-      <div className="pt-24 sm:pt-20 pb-16">
-        {currentView === 'home' && (
-          <Home
-            setShowMessage={setShowChatModal}
-            setShowComments={setShowComments}
-            setSelectedProfile={(profile) => {
-              setSelectedProfile(profile);
-              setSelectedProfileForChat(profile);
-            }}
+    <>
+      <Routes>
+        <Route element={
+          <MainLayout
             isAuthenticated={isAuthenticated}
             userProfile={userProfile}
-            selectedLocation={selectedLocation}
-            onNavigateToLogin={() => setCurrentView('login')}
+            userType={userType}
+            handleLogout={wrappedHandleLogout}
+            onSearchResultClick={handleSearchResultClick}
+            onNewPost={handleNewPost}
+            onLocationSelect={setSelectedLocation}
           />
-        )}
-        {currentView === 'profile' && (
-          <Profile
-            userProfile={userProfile}
-            setUserProfile={setUserProfile}
-            setCurrentView={setCurrentView}
-          />
-        )}
-        {currentView === 'messages' && userProfile && (
-          <Messages
-            userProfile={userProfile}
-            onMessagesRead={refreshUnreadCount}
-            onViewProfile={handleViewProfile}
-          />
-        )}
-        {currentView === 'viewProfile' && viewedUserProfile && (
-          <PublicProfile
-            viewedProfile={viewedUserProfile}
-            currentUserProfile={userProfile}
-            isAuthenticated={isAuthenticated}
-            onBack={() => setCurrentView('messages')}
-          />
-        )}
-        {currentView === 'wallet' && (
-          <Wallet
-            walletBalance={walletBalance}
-            setWalletBalance={setWalletBalance}
-            transactions={transactions}
-            setTransactions={setTransactions}
-          />
-        )}
-        {currentView === 'subscription' && (
-          <Subscription
-            autoOpenTier={autoOpenSubscriptionTier}
-            onAutoOpenComplete={() => setAutoOpenSubscriptionTier(null)}
-          />
-        )}
-        {currentView === 'admin' && (
-          <Admin />
-        )}
-        {currentView === 'login' && (
-          <Login
-            setIsAuthenticated={setIsAuthenticated}
-            setCurrentView={setCurrentView}
-            setUserType={setUserType}
-            setUserProfile={setUserProfile}
-          />
-        )}
-      </div>
+        }>
+          <Route path="/" element={
+            <ErrorBoundary>
+              <Home
+                setShowMessage={setShowChatModal}
+                setShowComments={() => {}}
+                setSelectedProfile={(profile) => {
+                  setSelectedProfileForChat(profile);
+                }}
+                isAuthenticated={isAuthenticated}
+                userProfile={userProfile}
+                selectedLocation={selectedLocation}
+                onNavigateToLogin={() => {}}
+              />
+            </ErrorBoundary>
+          } />
+          
+          <Route path="/login" element={
+            <ErrorBoundary>
+              <Login
+                setIsAuthenticated={(auth) => {}}
+                setCurrentView={() => {}}
+                setUserType={setUserType}
+                setUserProfile={setUserProfile}
+              />
+            </ErrorBoundary>
+          } />
 
-      <BottomNav
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        onLocationSelect={setSelectedLocation}
-        isAuthenticated={isAuthenticated}
-        onNewPost={handleNewPost}
-        userType={userType}
-        unreadMessagesCount={unreadCount}
-      />
+          <Route path="/profile" element={
+            <ErrorBoundary>
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Profile
+                  userProfile={userProfile}
+                  setUserProfile={setUserProfile}
+                  setCurrentView={() => {}}
+                />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
 
+          <Route path="/profile/:userId" element={
+            <ErrorBoundary>
+              <PublicProfile
+                viewedProfile={viewedUserProfile!}
+                currentUserProfile={userProfile}
+                isAuthenticated={isAuthenticated}
+                onBack={() => window.history.back()}
+              />
+            </ErrorBoundary>
+          } />
+
+          <Route path="/messages" element={
+            <ErrorBoundary>
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Messages
+                  userProfile={userProfile}
+                  onMessagesRead={() => {}}
+                  onViewProfile={handleViewProfile}
+                />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/wallet" element={
+            <ErrorBoundary>
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Wallet
+                  walletBalance={walletBalance}
+                  setWalletBalance={setWalletBalance}
+                  transactions={transactions}
+                  setTransactions={setTransactions}
+                />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/subscription" element={
+            <ErrorBoundary>
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Subscription
+                  autoOpenTier={autoOpenSubscriptionTier}
+                  onAutoOpenComplete={() => setAutoOpenSubscriptionTier(null)}
+                />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/admin" element={
+            <ErrorBoundary>
+              <ProtectedRoute isAuthenticated={isAuthenticated} requireAdmin={true} isAdmin={isAdmin}>
+                <Admin />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+        </Route>
+      </Routes>
+
+      {/* Menu latéral */}
       {showMenu && (
         <>
           <div 
@@ -357,140 +248,139 @@ const App = () => {
               <div className="flex-1 overflow-y-auto p-4">
                 {!isAuthenticated ? (
                   <>
-                    <button
-                      onClick={() => {
-                        setCurrentView('login');
+                    <a
+                      href="/login"
+                      onClick={(e) => {
+                        e.preventDefault();
                         setShowMenu(false);
                       }}
-                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200"
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200 block"
                     >
                       <LogIn className="h-5 w-5 text-rose" />
                       <span>Se connecter</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCurrentView('login');
+                    </a>
+                    <a
+                      href="/login"
+                      onClick={(e) => {
+                        e.preventDefault();
                         setShowMenu(false);
                       }}
-                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200 mt-2"
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200 mt-2 block"
                     >
                       <UserPlus className="h-5 w-5 text-rose" />
                       <span>S'inscrire</span>
-                    </button>
+                    </a>
                   </>
                 ) : (
                   <>
-                    <button
-                      onClick={() => {
-                        setCurrentView('profile');
+                    <a
+                      href="/profile"
+                      onClick={(e) => {
+                        e.preventDefault();
                         setShowMenu(false);
                       }}
-                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200"
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200 block"
                     >
                       <User className="h-5 w-5 text-rose" />
                       <span>Mon Profil</span>
-                    </button>
+                    </a>
 
                     {userType === 'pro' && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setCurrentView('subscription');
-                            setShowMenu(false);
-                          }}
-                          className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200 mt-2"
-                        >
-                          <Crown className="h-5 w-5 text-rose" />
-                          <span>Mon Abonnement</span>
-                        </button>
-                      </>
+                      <a
+                        href="/subscription"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setShowMenu(false);
+                        }}
+                        className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200 mt-2 block"
+                      >
+                        <Crown className="h-5 w-5 text-rose" />
+                        <span>Mon Abonnement</span>
+                      </a>
                     )}
 
                     {isAdmin && (
-                      <button
-                        onClick={() => {
-                          setCurrentView('admin');
+                      <a
+                        href="/admin"
+                        onClick={(e) => {
+                          e.preventDefault();
                           setShowMenu(false);
                         }}
-                        className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200 mt-2 bg-rose-500/20 border border-rose-500/30"
+                        className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200 mt-2 bg-rose-500/20 border border-rose-500/30 block"
                       >
                         <Shield className="h-5 w-5 text-rose" />
                         <span>Administration</span>
-                      </button>
+                      </a>
                     )}
 
                     {userType === 'pro' && (
                       <div className="mt-6">
                         <h3 className="px-4 text-sm font-medium text-gray-400 mb-3">Offres Premium</h3>
-
-                      <div className="space-y-3">
-                        <button
-                          onClick={() => {
-                            setAutoOpenSubscriptionTier('basic');
-                            setCurrentView('subscription');
-                            setShowMenu(false);
-                          }}
-                          className="w-full px-4 py-4 text-left flex items-start gap-3 bg-dark-50/50 hover:bg-dark-100 rounded-lg backdrop-blur-sm transition-colors"
-                        >
-                          <Sparkles className="h-5 w-5 text-yellow-500 shrink-0" />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-200">Roses Classic</span>
-                              <span className="text-sm font-medium text-rose">9.90€</span>
+                        <div className="space-y-3">
+                          <button
+                            onClick={() => {
+                              setAutoOpenSubscriptionTier('basic');
+                              setShowMenu(false);
+                            }}
+                            className="w-full px-4 py-4 text-left flex items-start gap-3 bg-dark-50/50 hover:bg-dark-100 rounded-lg backdrop-blur-sm transition-colors"
+                          >
+                            <Sparkles className="h-5 w-5 text-yellow-500 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-200">Roses Classic</span>
+                                <span className="text-sm font-medium text-rose">9.90€</span>
+                              </div>
+                              <p className="text-sm text-gray-400 mt-1">
+                                Visibilité boostée pendant 24h dans la ville du post
+                              </p>
                             </div>
-                            <p className="text-sm text-gray-400 mt-1">
-                              Visibilité boostée pendant 24h dans la ville du post
-                            </p>
-                          </div>
-                        </button>
+                          </button>
 
-                        <button
-                          onClick={() => {
-                            setAutoOpenSubscriptionTier('premium');
-                            setCurrentView('subscription');
-                            setShowMenu(false);
-                          }}
-                          className="w-full px-4 py-4 text-left flex items-start gap-3 bg-dark-50/50 hover:bg-dark-100 rounded-lg backdrop-blur-sm transition-colors"
-                        >
-                          <Crown className="h-5 w-5 text-purple-500 shrink-0" />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-200">Roses Premium</span>
-                              <span className="text-sm font-medium text-rose">49.90€</span>
+                          <button
+                            onClick={() => {
+                              setAutoOpenSubscriptionTier('premium');
+                              setShowMenu(false);
+                            }}
+                            className="w-full px-4 py-4 text-left flex items-start gap-3 bg-dark-50/50 hover:bg-dark-100 rounded-lg backdrop-blur-sm transition-colors"
+                          >
+                            <Crown className="h-5 w-5 text-purple-500 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-200">Roses Premium</span>
+                                <span className="text-sm font-medium text-rose">49.90€</span>
+                              </div>
+                              <p className="text-sm text-gray-400 mt-1">
+                                Visibilité boostée pendant 7 jours dans 5 villes au choix
+                              </p>
                             </div>
-                            <p className="text-sm text-gray-400 mt-1">
-                              Visibilité boostée pendant 7 jours dans 5 villes au choix
-                            </p>
-                          </div>
-                        </button>
+                          </button>
 
-                        <button
-                          onClick={() => {
-                            setAutoOpenSubscriptionTier('vip');
-                            setCurrentView('subscription');
-                            setShowMenu(false);
-                          }}
-                          className="w-full px-4 py-4 text-left flex items-start gap-3 bg-dark-50/50 hover:bg-dark-100 rounded-lg backdrop-blur-sm transition-colors"
-                        >
-                          <BadgeCheck className="h-5 w-5 text-blue-500 shrink-0" />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-200">Roses Elite</span>
-                              <span className="text-sm font-medium text-rose">169.90€</span>
+                          <button
+                            onClick={() => {
+                              setAutoOpenSubscriptionTier('vip');
+                              setShowMenu(false);
+                            }}
+                            className="w-full px-4 py-4 text-left flex items-start gap-3 bg-dark-50/50 hover:bg-dark-100 rounded-lg backdrop-blur-sm transition-colors"
+                          >
+                            <BadgeCheck className="h-5 w-5 text-blue-500 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-200">Roses Elite</span>
+                                <span className="text-sm font-medium text-rose">169.90€</span>
+                              </div>
+                              <p className="text-sm text-gray-400 mt-1">
+                                Visibilité boostée pendant 1 mois complet dans 10 villes au choix
+                              </p>
                             </div>
-                            <p className="text-sm text-gray-400 mt-1">
-                              Visibilité boostée pendant 1 mois complet dans 10 villes au choix
-                            </p>
-                          </div>
-                        </button>
+                          </button>
+                        </div>
                       </div>
-                    </div>
                     )}
 
                     <div className="mt-6 pt-6 border-t border-dark-200">
                       <button
                         onClick={() => {
-                          handleLogout();
+                          wrappedHandleLogout();
                           setShowMenu(false);
                         }}
                         className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-dark-100 rounded-lg text-gray-200"
@@ -507,6 +397,7 @@ const App = () => {
         </>
       )}
 
+      {/* Chat Modal */}
       {showChatModal && selectedProfileForChat && (
         <ChatModal
           profile={selectedProfileForChat}
@@ -568,13 +459,11 @@ const App = () => {
           walletBalance={walletBalance}
           onSendPayment={handleSendPayment}
           isAuthenticated={isAuthenticated}
-          onLogin={() => {
-            setShowChatModal(false);
-            setCurrentView('login');
-          }}
+          onLogin={() => setShowChatModal(false)}
         />
       )}
 
+      {/* Profile Modal */}
       {showProfileModal && selectedProfileForModal && (
         <ProfileModal
           profile={selectedProfileForModal}
@@ -590,7 +479,17 @@ const App = () => {
           isAuthenticated={isAuthenticated}
         />
       )}
-    </div>
+    </>
+  );
+};
+
+const App = () => {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 };
 

@@ -108,21 +108,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setError(null);
 
     try {
-        id: currentUserProfile.id,
-        user_id: currentUserProfile.user_id,
-        name: currentUserProfile.name
-      });
-        id: otherUserProfile.id,
-        user_id: otherUserProfile.user_id,
-        name: otherUserProfile.name
-      });
-
       const currentUserId = currentUserProfile.user_id || currentUserProfile.id;
       const otherUserId = otherUserProfile.user_id || otherUserProfile.id;
-
-        currentUserId,
-        otherUserId
-      });
 
       if (!currentUserId || !otherUserId) {
         throw new Error('ID utilisateur manquant');

@@ -6,7 +6,7 @@ import ProProfile from './ProProfile';
 interface ProfileProps {
   userProfile: UserProfile;
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
-  setCurrentView: (view: 'home' | 'profile' | 'messages' | 'wallet') => void;
+  setCurrentView: (view: 'home' | 'profile' | 'messages' | 'wallet') => void; // Deprecated
 }
 
 const Profile: React.FC<ProfileProps> = ({ userProfile, setUserProfile, setCurrentView }) => {

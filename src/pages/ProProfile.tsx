@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Settings, Info, X, Camera, Save, Calendar, ChevronDown, BarChart2, Users, Star, PlusSquare, MessageCircle, Heart, TrendingUp, Clock, Upload, Trash2, AlertCircle, UserPlus, FileEdit, CheckCircle2, MoreVertical, Edit, Eye, EyeOff, GripVertical, Power, Sparkles, Crown, BadgeCheck } from 'lucide-react';
 import { UserProfile } from '../types';
 import NewPostModal from '../components/modals/NewPostModal';
@@ -16,7 +17,7 @@ import { getUserReviews } from '../lib/userStats';
 interface ProProfileProps {
   userProfile: UserProfile;
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
-  setCurrentView: (view: 'home' | 'profile' | 'messages' | 'wallet') => void;
+  setCurrentView: (view: 'home' | 'profile' | 'messages' | 'wallet') => void; // Deprecated
 }
 
 const ProProfile: React.FC<ProProfileProps> = ({
@@ -24,6 +25,7 @@ const ProProfile: React.FC<ProProfileProps> = ({
   setUserProfile,
   setCurrentView
 }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'edit'>('dashboard');
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [showEditPostModal, setShowEditPostModal] = useState(false);
@@ -430,7 +432,7 @@ const ProProfile: React.FC<ProProfileProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={() => setCurrentView('subscription')}
+                  onClick={() => navigate('/subscription')}
                   className="px-4 py-2 bg-dark-100 hover:bg-dark-200 text-gray-300 rounded-lg transition-colors text-sm"
                 >
                   Gérer
