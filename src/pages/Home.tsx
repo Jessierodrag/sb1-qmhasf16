@@ -7,7 +7,6 @@ import LoginPromptModal from '../components/modals/LoginPromptModal';
 import PostCard from '../components/PostCard';
 import { getPosts, Post as PostType } from '../lib/posts';
 import { Loader } from 'lucide-react';
-import { getProfileById, userProfileToProfile } from '../lib/profile';
 
 interface HomeProps {
   setShowMessage: (show: boolean) => void;
@@ -86,21 +85,32 @@ const Home: React.FC<HomeProps> = ({
 
   // Charger les publications au montage et lorsque la localisation change
   useEffect(() => {
-    loadPosts();
+    setCurrentPage(0);
+    setHasMore(true);
+    loadPosts(0, false);
   }, [selectedLocation]);
 
   // Écouter les événements de création, modification et suppression de post
   useEffect(() => {
     const handlePostCreated = () => {
-      loadPosts();
+      console.log('Post créé, rechargement des publications...');
+      setCurrentPage(0);
+      setHasMore(true);
+      loadPosts(0, false);
     };
 
     const handlePostDeleted = () => {
-      loadPosts();
+      console.log('Post supprimé, rechargement des publications...');
+      setCurrentPage(0);
+      setHasMore(true);
+      loadPosts(0, false);
     };
 
     const handlePostUpdated = () => {
-      loadPosts();
+      console.log('Post modifié, rechargement des publications...');
+      setCurrentPage(0);
+      setHasMore(true);
+      loadPosts(0, false);
     };
 
     window.addEventListener('postCreated', handlePostCreated);
@@ -240,6 +250,26 @@ const Home: React.FC<HomeProps> = ({
                 isBoosted={post.is_boosted || false}
               />
             ))}
+            
+            {/* Bouton "Charger plus" */}
+            {hasMore && !isLoading && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={loadMorePosts}
+                  disabled={isLoadingMore}
+                  className="px-6 py-3 bg-gradient-to-r from-rose-500 to-rose-600 text-white font-medium rounded-full hover:from-rose-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-glow-rose disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <Loader className="h-5 w-5 animate-spin" />
+                      Chargement...
+                    </>
+                  ) : (
+                    'Charger plus'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         ) : !isLoading && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
