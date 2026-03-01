@@ -228,15 +228,21 @@ export const getPosts = async (
       .eq('is_active', true);
 
     if (location) {
-      // Extraire la ville de base (ex: "Paris 1er" -> "Paris")
-      const baseCity = location.split(' ')[0];
-
-      // Si c'est un arrondissement (contient un espace), chercher aussi la ville de base
-      if (location.includes(' ')) {
-        query = query.or(`location.eq.${location},location.eq.${baseCity},location.ilike.${baseCity}%`);
+      // Sanitize location input: only allow alphanumeric, spaces, accents, hyphens
+      const sanitized = location.replace(/[^a-zA-ZÀ-ÿ0-9\s\-']/g, '').trim();
+      if (!sanitized) {
+        // Invalid location, skip filter
       } else {
-        // Si c'est une ville simple, chercher aussi tous ses arrondissements
-        query = query.or(`location.eq.${location},location.ilike.${location}%`);
+        // Extraire la ville de base (ex: "Paris 1er" -> "Paris")
+        const baseCity = sanitized.split(' ')[0];
+
+        // Si c'est un arrondissement (contient un espace), chercher aussi la ville de base
+        if (sanitized.includes(' ')) {
+          query = query.or(`location.eq.${sanitized},location.eq.${baseCity},location.ilike.${baseCity}%`);
+        } else {
+          // Si c'est une ville simple, chercher aussi tous ses arrondissements
+          query = query.or(`location.eq.${sanitized},location.ilike.${sanitized}%`);
+        }
       }
     }
 
