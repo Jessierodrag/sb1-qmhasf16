@@ -39,7 +39,6 @@ export const useUnreadMessages = (userId: string | null | undefined, refreshInte
     fetchUnreadCount();
 
     // S'abonner aux changements des messages en temps réel
-    console.log('[useUnreadMessages] Abonnement aux messages pour:', userId);
     const messagesSubscription = supabase
       .channel('messages-changes')
       .on(
@@ -50,7 +49,6 @@ export const useUnreadMessages = (userId: string | null | undefined, refreshInte
           table: 'messages'
         },
         (payload) => {
-          console.log('[useUnreadMessages] Changement détecté:', payload);
           fetchUnreadCount();
         }
       )
@@ -60,7 +58,6 @@ export const useUnreadMessages = (userId: string | null | undefined, refreshInte
     const interval = setInterval(fetchUnreadCount, refreshInterval);
 
     return () => {
-      console.log('[useUnreadMessages] Nettoyage des abonnements');
       messagesSubscription.unsubscribe();
       clearInterval(interval);
     };

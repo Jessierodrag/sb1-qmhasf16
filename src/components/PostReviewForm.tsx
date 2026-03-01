@@ -47,13 +47,11 @@ const PostReviewForm: React.FC<PostReviewFormProps> = ({ postId, onReviewAdded }
     const fetchCurrentUser = async () => {
       try {
         if (!isAuthenticated) {
-          console.log('User not authenticated, skipping profile fetch');
           return;
         }
         
         const { data } = await supabase.auth.getUser();
         if (data.user) {
-          console.log('Fetching profile for user:', data.user.id);
           
           // Récupérer le profil de l'utilisateur
           const { data: profileData, error: profileError } = await supabase
@@ -68,14 +66,12 @@ const PostReviewForm: React.FC<PostReviewFormProps> = ({ postId, onReviewAdded }
           }
           
           if (profileData) {
-            console.log('User profile found:', profileData);
             setCurrentUser({
               id: data.user.id,
               name: profileData.username || profileData.name,
               photo: profileData.photos?.[0] || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400'
             });
           } else {
-            console.log('No profile data found for user');
           }
         }
       } catch (err) {
@@ -91,11 +87,9 @@ const PostReviewForm: React.FC<PostReviewFormProps> = ({ postId, onReviewAdded }
     const fetchReviews = async () => {
       setIsLoading(true);
       try {
-        console.log('Fetching reviews for post:', postId);
         const { reviews, error } = await getPostReviews(postId);
         if (error) throw new Error(error.message);
         
-        console.log('Fetched reviews:', reviews);
         setReviews(reviews);
         
         // Calculer la note moyenne
@@ -132,7 +126,6 @@ const PostReviewForm: React.FC<PostReviewFormProps> = ({ postId, onReviewAdded }
     setError(null);
     
     try {
-      console.log('Submitting review:', {
         postId,
         rating: newReview.rating,
         comment: newReview.comment
@@ -149,7 +142,6 @@ const PostReviewForm: React.FC<PostReviewFormProps> = ({ postId, onReviewAdded }
         throw new Error(error.message);
       }
       
-      console.log('Review added successfully:', review);
       
       if (review) {
         // Ajouter le nouvel avis à la liste

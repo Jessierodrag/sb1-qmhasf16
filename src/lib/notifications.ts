@@ -22,7 +22,6 @@ export const getNotifications = async (
   limit = 50
 ): Promise<{ notifications: Notification[]; error: string | null }> => {
   try {
-    console.log('[getNotifications] Récupération notifications pour:', userId);
 
     const { data, error } = await supabase
       .from('notifications')
@@ -39,7 +38,6 @@ export const getNotifications = async (
       throw error;
     }
 
-    console.log('[getNotifications] Notifications récupérées:', data?.length || 0);
     return { notifications: data || [], error: null };
   } catch (error) {
     console.error('[getNotifications] Erreur:', error);
@@ -79,7 +77,6 @@ export const markNotificationAsRead = async (
   notificationId: string
 ): Promise<{ success: boolean; error: string | null }> => {
   try {
-    console.log('[markNotificationAsRead] Marquage notification:', notificationId);
 
     const { error } = await supabase
       .from('notifications')
@@ -91,7 +88,6 @@ export const markNotificationAsRead = async (
       throw error;
     }
 
-    console.log('[markNotificationAsRead] Notification marquée comme lue');
     return { success: true, error: null };
   } catch (error) {
     console.error('[markNotificationAsRead] Erreur:', error);
@@ -106,7 +102,6 @@ export const markAllNotificationsAsRead = async (
   userId: string
 ): Promise<{ success: boolean; error: string | null }> => {
   try {
-    console.log('[markAllNotificationsAsRead] Marquage toutes notifications pour:', userId);
 
     const { error } = await supabase
       .from('notifications')
@@ -119,7 +114,6 @@ export const markAllNotificationsAsRead = async (
       throw error;
     }
 
-    console.log('[markAllNotificationsAsRead] Toutes les notifications marquées comme lues');
     return { success: true, error: null };
   } catch (error) {
     console.error('[markAllNotificationsAsRead] Erreur:', error);
@@ -134,7 +128,6 @@ export const deleteNotification = async (
   notificationId: string
 ): Promise<{ success: boolean; error: string | null }> => {
   try {
-    console.log('[deleteNotification] Suppression notification:', notificationId);
 
     const { error } = await supabase
       .from('notifications')
@@ -146,7 +139,6 @@ export const deleteNotification = async (
       throw error;
     }
 
-    console.log('[deleteNotification] Notification supprimée');
     return { success: true, error: null };
   } catch (error) {
     console.error('[deleteNotification] Erreur:', error);

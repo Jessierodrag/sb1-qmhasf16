@@ -62,7 +62,6 @@ const ProProfile: React.FC<ProProfileProps> = ({
   // Écouter les événements de création de post
   useEffect(() => {
     const handlePostCreated = () => {
-      console.log('Post créé, rechargement des publications dans ProProfile...');
       checkUserPosts();
     };
 
@@ -226,24 +225,20 @@ const ProProfile: React.FC<ProProfileProps> = ({
   const shouldShowTips = showProfileCompletionTips && (!hasCompletedProfile || !hasCreatedPost);
 
   const handleEditPost = (post: any) => {
-    console.log('handleEditPost appelé avec:', post);
     setSelectedPost(post);
     setShowEditPostModal(true);
     setOpenMenuPostId(null);
   };
 
   const handleUpdatePost = async (data: { caption: string; location: string; tags: string[]; newPhotos?: File[] }) => {
-    console.log('handleUpdatePost appelé avec:', data);
     if (!selectedPost) {
       console.error('Aucun post sélectionné');
       return;
     }
 
     const postId = selectedPost.id;
-    console.log('Mise à jour du post:', postId);
     const { success, error } = await updatePost(postId, data);
 
-    console.log('Résultat de la mise à jour:', { success, error });
     if (success) {
       await checkUserPosts();
 
@@ -278,13 +273,10 @@ const ProProfile: React.FC<ProProfileProps> = ({
   };
 
   const handleToggleActive = async (post: any) => {
-    console.log('handleToggleActive appelé avec:', post);
     const newStatus = !post.is_active;
-    console.log('Nouveau statut:', newStatus);
 
     const { success, error } = await togglePostActive(post.id, newStatus);
 
-    console.log('Résultat du toggle:', { success, error });
     if (success) {
       await checkUserPosts();
       alert(newStatus ? 'Publication activée' : 'Publication désactivée');
@@ -812,7 +804,6 @@ const ProProfile: React.FC<ProProfileProps> = ({
         <NewPostModal
           onClose={() => setShowNewPostModal(false)}
           onPost={(post) => {
-            console.log('Nouveau post:', post);
             setShowNewPostModal(false);
             setHasCreatedPost(true);
           }}
@@ -821,11 +812,9 @@ const ProProfile: React.FC<ProProfileProps> = ({
 
       {/* Modal de modification de publication */}
       {(() => {
-        console.log('Modal check - showEditPostModal:', showEditPostModal, 'selectedPost:', selectedPost);
         return showEditPostModal && selectedPost ? (
           <EditPostModal
             onClose={() => {
-              console.log('Fermeture du modal d\'édition');
               setShowEditPostModal(false);
               setSelectedPost(null);
             }}

@@ -17,7 +17,6 @@ export const uploadFile = async (
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    console.log(`Téléchargement du fichier ${file.name} dans le bucket ${bucket}...`);
 
     // Compresser l'image si c'est une image
     let fileToUpload = file;
@@ -34,7 +33,6 @@ export const uploadFile = async (
       ? `${folder}/${fileName}`
       : `${user.id}/${fileName}`;
     
-    console.log(`Chemin du fichier: ${filePath}`);
     
     // Télécharger le fichier
     const { error: uploadError } = await supabase.storage
@@ -54,7 +52,6 @@ export const uploadFile = async (
       .from(bucket)
       .getPublicUrl(filePath);
     
-    console.log(`URL publique: ${urlData.publicUrl}`);
     
     return { url: urlData.publicUrl, error: null };
   } catch (error) {
@@ -141,7 +138,6 @@ const extractVideoThumbnail = async (file: File): Promise<File> => {
               }
             );
 
-            console.log(`Thumbnail vidéo créé: ${thumbnailFile.size / 1024}KB`);
             resolve(thumbnailFile);
           },
           'image/jpeg',
@@ -221,7 +217,6 @@ const compressImage = async (file: File): Promise<File> => {
               lastModified: Date.now()
             });
             
-            console.log(`Image compressée: ${file.size / 1024}KB -> ${compressedFile.size / 1024}KB`);
             resolve(compressedFile);
           },
           'image/jpeg',
@@ -247,7 +242,6 @@ export const uploadFiles = async (
   folder?: string
 ): Promise<{ urls: string[]; error: StorageError | null }> => {
   try {
-    console.log(`Téléchargement de ${files.length} fichiers dans le bucket ${bucket}...`);
     
     const uploadPromises = files.map(file => uploadFile(file, bucket, folder));
     const results = await Promise.all(uploadPromises);
@@ -262,7 +256,6 @@ export const uploadFiles = async (
     // Collecter les URLs
     const urls = results.map(result => result.url).filter(url => url !== null) as string[];
     
-    console.log(`URLs des fichiers téléchargés:`, urls);
     
     return { urls, error: null };
   } catch (error) {
@@ -291,23 +284,19 @@ export const uploadPostPhotos = async (
   userId: string
 ): Promise<{ urls: string[]; thumbnails: string[]; error: string | null }> => {
   try {
-    console.log(`[uploadPostPhotos] Début de l'upload de ${files.length} médias`);
 
     const urls: string[] = [];
     const thumbnails: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`[uploadPostPhotos] Traitement du fichier ${i + 1}/${files.length}: ${file.name} (${file.type})`);
 
       let thumbnailUrl: string | null = null;
 
       // Si c'est une vidéo, générer d'abord un thumbnail
       if (isVideoFile(file)) {
-        console.log(`[uploadPostPhotos] Fichier ${i + 1} est une vidéo, génération du thumbnail...`);
         try {
           const thumbnailFile = await extractVideoThumbnail(file);
-          console.log(`[uploadPostPhotos] Thumbnail extrait: ${thumbnailFile.name}, taille: ${thumbnailFile.size} bytes`);
 
           const { url: thumbUrl, error: thumbError } = await uploadFile(
             thumbnailFile,
@@ -319,17 +308,14 @@ export const uploadPostPhotos = async (
             console.error(`[uploadPostPhotos] Erreur upload thumbnail pour fichier ${i + 1}:`, thumbError);
           } else {
             thumbnailUrl = thumbUrl;
-            console.log(`[uploadPostPhotos] Thumbnail uploadé avec succès pour fichier ${i + 1}: ${thumbUrl}`);
           }
         } catch (thumbError) {
           console.error(`[uploadPostPhotos] Exception lors de la génération du thumbnail pour fichier ${i + 1}:`, thumbError);
         }
       } else {
-        console.log(`[uploadPostPhotos] Fichier ${i + 1} est une image, pas de thumbnail nécessaire`);
       }
 
       // Upload du fichier original
-      console.log(`[uploadPostPhotos] Upload du fichier original ${i + 1}...`);
       const { url, error } = await uploadFile(file, 'posts', userId);
 
       if (error || !url) {
@@ -337,18 +323,13 @@ export const uploadPostPhotos = async (
         throw new Error(error?.message || 'Erreur lors du téléchargement du média');
       }
 
-      console.log(`[uploadPostPhotos] Fichier ${i + 1} uploadé: ${url}`);
       urls.push(url);
 
       // IMPORTANT : toujours pousser quelque chose dans thumbnails pour garder la cohérence des indices
       const finalThumbnail = thumbnailUrl || url;
       thumbnails.push(finalThumbnail);
-      console.log(`[uploadPostPhotos] Thumbnail pour fichier ${i + 1}: ${finalThumbnail}`);
     }
 
-    console.log(`[uploadPostPhotos] Upload terminé avec succès`);
-    console.log(`[uploadPostPhotos] URLs (${urls.length}):`, urls);
-    console.log(`[uploadPostPhotos] Thumbnails (${thumbnails.length}):`, thumbnails);
 
     if (urls.length !== thumbnails.length) {
       console.error(`[uploadPostPhotos] ATTENTION: Incohérence! URLs: ${urls.length}, Thumbnails: ${thumbnails.length}`);
@@ -387,7 +368,6 @@ export const deleteFile = async (
     
     const filePath = pathParts.slice(bucketIndex + 1).join('/');
     
-    console.log(`Suppression du fichier ${filePath} du bucket ${bucket}...`);
     
     // Supprimer le fichier
     const { error: deleteError } = await supabase.storage

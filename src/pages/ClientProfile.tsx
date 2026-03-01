@@ -25,14 +25,11 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ userProfile, setUserProfi
   useEffect(() => {
     const loadMyReviews = async () => {
       if (userProfile.user_id) {
-        console.log('[ClientProfile] Loading reviews for user_id:', userProfile.user_id);
         setIsLoadingReviews(true);
         const [postReviewsResult, profileReviewsResult] = await Promise.all([
           getUserWrittenReviews(userProfile.user_id),
           getUserWrittenProfileReviews(userProfile.user_id)
         ]);
-        console.log('[ClientProfile] Post reviews:', postReviewsResult);
-        console.log('[ClientProfile] Profile reviews:', profileReviewsResult);
         setMyPostReviews(postReviewsResult.reviews);
         setMyProfileReviews(profileReviewsResult.reviews);
         setIsLoadingReviews(false);

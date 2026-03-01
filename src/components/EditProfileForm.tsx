@@ -88,14 +88,12 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({
 
       // Uploader la nouvelle photo vers Supabase Storage si elle existe
       if (photoFile) {
-        console.log('[EditProfileForm] Uploading profile photo to Supabase...');
         const { url, error: uploadError } = await uploadFile(photoFile, 'profiles');
 
         if (uploadError || !url) {
           throw new Error(uploadError?.message || 'Erreur lors de l\'upload de la photo');
         }
 
-        console.log('[EditProfileForm] Photo uploaded:', url);
         photoUrl = url;
       }
 
@@ -106,7 +104,6 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({
         photos: photoUrl ? [photoUrl, ...formData.photos.slice(1)] : formData.photos
       };
 
-      console.log('[EditProfileForm] Updating profile with data:', updatedProfile);
 
       // Sauvegarder dans Supabase
       const { success, error } = await updateProfile(updatedProfile);

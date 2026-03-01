@@ -121,7 +121,6 @@ export const createPost = async (data: {
       throw new Error('User not authenticated');
     }
 
-    console.log('Authenticated user:', user.id);
 
     const validation = await validateMediaUpload(user.id, data.photos);
     if (!validation.valid) {
@@ -133,7 +132,6 @@ export const createPost = async (data: {
       };
     }
 
-    console.log('Uploading photos to Supabase Storage...');
     const { urls: photoUrls, thumbnails: thumbnailUrls, error: uploadError } = await uploadPostPhotos(data.photos, user.id);
 
     if (uploadError) {
@@ -141,11 +139,8 @@ export const createPost = async (data: {
       throw new Error(uploadError);
     }
 
-    console.log('Photos uploaded successfully:', photoUrls);
-    console.log('Thumbnails generated:', thumbnailUrls);
 
     // Créer un nouveau post
-    console.log('Création d\'un nouveau post...');
 
     const postId = uuidv4();
 
@@ -170,7 +165,6 @@ export const createPost = async (data: {
       throw insertError;
     }
 
-    console.log('Post created in database:', insertedPost);
 
     const newPost: Post = {
       id: insertedPost.id,
@@ -187,7 +181,6 @@ export const createPost = async (data: {
       is_liked: false
     };
 
-    console.log('Post created successfully:', newPost);
     return { post: newPost, error: null };
   } catch (error) {
     console.error('Create post error:', error);
@@ -202,7 +195,9 @@ export const createPost = async (data: {
 
 export const getPosts = async (
   location?: string,
-  userId?: string
+  userId?: string,
+  page: number = 0,
+  pageSize: number = 10
 ): Promise<{ posts: Post[]; error: PostError | null }> => {
   try {
     let query = supabase
@@ -250,6 +245,11 @@ export const getPosts = async (
       query = query.eq('user_id', userId);
     }
 
+    // Pagination
+    const startIndex = page * pageSize;
+    const endIndex = (page + 1) * pageSize - 1;
+    query = query.range(startIndex, endIndex);
+
     const { data, error: fetchError } = await query;
 
     if (fetchError) {
@@ -295,7 +295,6 @@ export const getPosts = async (
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
 
-    console.log('Posts fetched from database:', posts.length);
     return { posts, error: null };
   } catch (error) {
     console.error('Get posts error:', error);
@@ -329,7 +328,6 @@ export const deletePost = async (
       throw deleteError;
     }
 
-    console.log('Post deleted successfully');
     return { success: true, error: null };
   } catch (error) {
     console.error('Delete post error:', error);
@@ -374,7 +372,6 @@ export const updatePost = async (
     let updatedThumbnails: string[] | undefined;
 
     if (data.newPhotos && data.newPhotos.length > 0) {
-      console.log('Uploading new photos to Supabase Storage...');
       const { urls: newPhotoUrls, thumbnails: newThumbnailUrls, error: uploadError } = await uploadPostPhotos(data.newPhotos, user.id);
 
       if (uploadError) {
@@ -382,8 +379,6 @@ export const updatePost = async (
         throw new Error(uploadError);
       }
 
-      console.log('New photos uploaded successfully:', newPhotoUrls);
-      console.log('New thumbnails generated:', newThumbnailUrls);
 
       const { data: existingPost } = await supabase
         .from('posts')
@@ -396,8 +391,6 @@ export const updatePost = async (
       const existingThumbnails = existingPost?.thumbnails || [];
       updatedPhotos = [...newPhotoUrls, ...existingPhotos];
       updatedThumbnails = [...newThumbnailUrls, ...existingThumbnails];
-      console.log('Updated photos order (new photos first):', updatedPhotos);
-      console.log('Updated thumbnails order:', updatedThumbnails);
     }
 
     const updateData: any = {
@@ -421,7 +414,6 @@ export const updatePost = async (
       throw updateError;
     }
 
-    console.log('Post updated successfully');
     return { success: true, error: null };
   } catch (error) {
     console.error('Update post error:', error);
@@ -459,7 +451,6 @@ export const togglePostActive = async (
       throw updateError;
     }
 
-    console.log(`Post ${isActive ? 'activated' : 'deactivated'} successfully`);
     return { success: true, error: null };
   } catch (error) {
     console.error('Toggle post active error:', error);
@@ -497,7 +488,6 @@ export const reorderPostPhotos = async (
       throw updateError;
     }
 
-    console.log('Photos reordered successfully');
     return { success: true, error: null };
   } catch (error) {
     console.error('Reorder photos error:', error);
@@ -571,7 +561,6 @@ export const removePhotosFromPost = async (
       throw updateError;
     }
 
-    console.log('Photos removed successfully');
     return { success: true, error: null };
   } catch (error) {
     console.error('Remove photos error:', error);
@@ -606,11 +595,9 @@ export const mergeUserPosts = async (): Promise<{ success: boolean; error: PostE
     }
 
     if (!userPosts || userPosts.length <= 1) {
-      console.log('Aucune fusion nécessaire (0 ou 1 post)');
       return { success: true, error: null };
     }
 
-    console.log(`Fusion de ${userPosts.length} posts...`);
 
     // Garder le premier post (le plus ancien) et fusionner tous les autres dedans
     const mainPost = userPosts[0];
@@ -662,7 +649,6 @@ export const mergeUserPosts = async (): Promise<{ success: boolean; error: PostE
       throw deleteError;
     }
 
-    console.log(`Posts fusionnés avec succès: ${allPhotos.length} photos au total`);
     return { success: true, error: null };
   } catch (error) {
     console.error('Merge posts error:', error);

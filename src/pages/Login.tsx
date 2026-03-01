@@ -72,6 +72,14 @@ const Login: React.FC<LoginProps> = ({
         throw new Error("Le pseudo doit contenir au moins 3 caractères.");
       }
 
+      // Validation du mot de passe (minimum 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre)
+      if (!isLoginMode) {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(formData.password)) {
+          throw new Error("Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.");
+        }
+      }
+
       let result;
       if (isLoginMode) {
         result = await signIn({
@@ -325,7 +333,7 @@ const Login: React.FC<LoginProps> = ({
                       className="w-full px-3 py-2 bg-dark-100 border border-dark-200 rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose focus:border-transparent pr-10"
                       placeholder="••••••••"
                       required
-                      minLength={6}
+                      minLength={8}
                     />
                     <button
                       type="button"
@@ -341,7 +349,7 @@ const Login: React.FC<LoginProps> = ({
                   </div>
                   {!isLoginMode && (
                     <p className="mt-1 text-xs text-gray-500">
-                      Minimum 6 caractères
+                      Minimum 8 caractères, 1 majuscule, 1 minuscule et 1 chiffre
                     </p>
                   )}
                   {isLoginMode && (

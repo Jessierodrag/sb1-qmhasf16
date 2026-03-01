@@ -68,14 +68,11 @@ export const updateProfile = async (
   profile: UserProfile
 ): Promise<{ success: boolean; error: ProfileError | null }> => {
   try {
-    console.log('[updateProfile] Starting with profile:', profile);
 
     // Get authenticated user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    console.log('[updateProfile] Auth user:', user.id);
-    console.log('[updateProfile] Profile user_id:', profile.user_id);
 
     if (profile.user_id !== user.id) {
       throw new Error('Unauthorized profile update attempt');
@@ -97,7 +94,6 @@ export const updateProfile = async (
       updated_at: new Date().toISOString()
     };
 
-    console.log('[updateProfile] Update data:', updateData);
 
     // Update profile in Supabase
     const { data, error } = await supabase
@@ -107,7 +103,6 @@ export const updateProfile = async (
       .select()
       .single();
 
-    console.log('[updateProfile] Supabase result:', { data, error });
 
     if (error) {
       console.error('[updateProfile] Error details:', {
@@ -176,7 +171,6 @@ export const getProfileById = async (
   profileId: string
 ): Promise<{ profile: UserProfile | null; error: ProfileError | null }> => {
   try {
-    console.log('[getProfileById] Récupération profil pour ID:', profileId);
 
     // Récupérer depuis Supabase
     const { data, error } = await supabase
@@ -191,7 +185,6 @@ export const getProfileById = async (
     }
 
     if (!data) {
-      console.log('[getProfileById] Aucun profil trouvé');
       return { profile: null, error: { message: 'Profil non trouvé' } };
     }
 
@@ -254,7 +247,6 @@ export const getProfileById = async (
       is_active: data.is_active !== false
     };
 
-    console.log('[getProfileById] Profil récupéré:', profile.username, `avec ${reviews.length} avis`);
     return { profile, error: null };
   } catch (error) {
     console.error('Get profile error:', error);

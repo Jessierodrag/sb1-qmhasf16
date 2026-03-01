@@ -9,7 +9,6 @@ export const toggleLike = async (
   userId: string
 ): Promise<{ success: boolean; isLiked: boolean; likesCount: number; error: LikeError | null }> => {
   try {
-    console.log('[toggleLike] Toggle like pour post:', postId, 'user:', userId);
 
     const { data: existingLike, error: checkError } = await supabase
       .from('likes')
@@ -37,7 +36,6 @@ export const toggleLike = async (
       }
 
       isLiked = false;
-      console.log('[toggleLike] Like supprimé');
     } else {
       const { error: insertError } = await supabase
         .from('likes')
@@ -52,7 +50,6 @@ export const toggleLike = async (
       }
 
       isLiked = true;
-      console.log('[toggleLike] Like ajouté');
     }
 
     const { count, error: countError } = await supabase
@@ -66,7 +63,6 @@ export const toggleLike = async (
     }
 
     const likesCount = count || 0;
-    console.log('[toggleLike] Nouveau total de likes:', likesCount);
 
     return {
       success: true,
@@ -92,7 +88,6 @@ export const getLikeStatus = async (
   userId: string | null
 ): Promise<{ isLiked: boolean; likesCount: number; error: LikeError | null }> => {
   try {
-    console.log('[getLikeStatus] Récupération statut pour post:', postId, 'user:', userId);
 
     const { count, error: countError } = await supabase
       .from('likes')
@@ -124,7 +119,6 @@ export const getLikeStatus = async (
       isLiked = !!data;
     }
 
-    console.log('[getLikeStatus] Statut:', { isLiked, likesCount });
 
     return {
       isLiked,

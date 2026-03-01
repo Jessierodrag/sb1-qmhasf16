@@ -115,8 +115,6 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ onClose, onPost }) => {
     setError(null);
 
     try {
-      console.log('Création de la publication...');
-      console.log('Fichiers sélectionnés:', selectedFiles.map(f => f.name));
       
       const { post, error } = await createPost({
         caption,
@@ -134,7 +132,6 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ onClose, onPost }) => {
         throw new Error('Aucune publication n\'a été créée');
       }
 
-      console.log('Publication créée avec succès:', post);
       
       onPost({
         photos: post.photos,

@@ -40,7 +40,6 @@ export const getOrCreateConversation = async (
   otherUserId: string
 ): Promise<{ conversation: Conversation | null; error: string | null }> => {
   try {
-    console.log('[getOrCreateConversation] Recherche conversation entre:', currentUserId, otherUserId);
 
     // Normaliser l'ordre des IDs pour correspondre à la logique du trigger SQL
     const [user1, user2] = currentUserId < otherUserId
@@ -61,13 +60,11 @@ export const getOrCreateConversation = async (
     }
 
     if (existingConversations) {
-      console.log('[getOrCreateConversation] Conversation trouvée:', existingConversations.id);
       return { conversation: existingConversations, error: null };
     }
 
     // Créer une nouvelle conversation avec les IDs normalisés
     // Le trigger SQL s'assurera que l'ordre est correct
-    console.log('[getOrCreateConversation] Création nouvelle conversation');
     const { data: newConversation, error: createError } = await supabase
       .from('conversations')
       .insert({
@@ -85,7 +82,6 @@ export const getOrCreateConversation = async (
       // Si l'erreur est due à une violation de contrainte unique (race condition),
       // réessayer de récupérer la conversation qui vient d'être créée
       if (createError.code === '23505') {
-        console.log('[getOrCreateConversation] Conversation déjà créée, récupération...');
         const { data: retryConversation, error: retryError } = await supabase
           .from('conversations')
           .select('*')
@@ -103,7 +99,6 @@ export const getOrCreateConversation = async (
       throw createError;
     }
 
-    console.log('[getOrCreateConversation] Conversation créée:', newConversation.id);
     return { conversation: newConversation, error: null };
   } catch (error) {
     console.error('[getOrCreateConversation] Erreur:', error);
@@ -121,7 +116,6 @@ export const getUserConversations = async (
   userId: string
 ): Promise<{ conversations: Conversation[]; error: string | null }> => {
   try {
-    console.log('[getUserConversations] Récupération conversations pour:', userId);
 
     const { data: conversations, error } = await supabase
       .from('conversations')
@@ -160,7 +154,6 @@ export const getUserConversations = async (
       })
     );
 
-    console.log('[getUserConversations] Conversations récupérées:', enrichedConversations.length);
     return { conversations: enrichedConversations, error: null };
   } catch (error) {
     console.error('[getUserConversations] Erreur:', error);
@@ -178,7 +171,6 @@ export const getConversationMessages = async (
   conversationId: string
 ): Promise<{ messages: Message[]; error: string | null }> => {
   try {
-    console.log('[getConversationMessages] Récupération messages pour conversation:', conversationId);
 
     const { data: messages, error } = await supabase
       .from('messages')
@@ -191,7 +183,6 @@ export const getConversationMessages = async (
       throw error;
     }
 
-    console.log('[getConversationMessages] Messages récupérés:', messages?.length || 0);
     return { messages: messages || [], error: null };
   } catch (error) {
     console.error('[getConversationMessages] Erreur:', error);
@@ -211,7 +202,6 @@ export const sendMessage = async (
   content: string
 ): Promise<{ message: Message | null; error: string | null }> => {
   try {
-    console.log('[sendMessage] Envoi message dans conversation:', conversationId);
 
     if (!content.trim()) {
       throw new Error('Le message ne peut pas être vide');
@@ -242,7 +232,6 @@ export const sendMessage = async (
       })
       .eq('id', conversationId);
 
-    console.log('[sendMessage] Message envoyé:', message.id);
     return { message, error: null };
   } catch (error) {
     console.error('[sendMessage] Erreur:', error);
@@ -261,7 +250,6 @@ export const markMessagesAsRead = async (
   userId: string
 ): Promise<{ success: boolean; error: string | null }> => {
   try {
-    console.log('[markMessagesAsRead] Marquage messages comme lus pour conversation:', conversationId);
 
     const { error } = await supabase
       .from('messages')
@@ -275,7 +263,6 @@ export const markMessagesAsRead = async (
       throw error;
     }
 
-    console.log('[markMessagesAsRead] Messages marqués comme lus');
     return { success: true, error: null };
   } catch (error) {
     console.error('[markMessagesAsRead] Erreur:', error);
@@ -333,7 +320,6 @@ export const deleteConversation = async (
   userId: string
 ): Promise<{ success: boolean; error: string | null }> => {
   try {
-    console.log('[deleteConversation] Suppression conversation:', conversationId, 'pour:', userId);
 
     const { data: conversation, error: fetchError } = await supabase
       .from('conversations')
@@ -361,7 +347,6 @@ export const deleteConversation = async (
       throw updateError;
     }
 
-    console.log('[deleteConversation] Conversation supprimée avec succès');
     return { success: true, error: null };
   } catch (error) {
     console.error('[deleteConversation] Erreur:', error);

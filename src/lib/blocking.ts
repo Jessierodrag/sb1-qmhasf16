@@ -12,7 +12,6 @@ export const blockUser = async (
   blockedId: string
 ): Promise<{ success: boolean; error: string | null }> => {
   try {
-    console.log('[blockUser] Blocage utilisateur:', blockerId, '->', blockedId);
 
     const { error } = await supabase
       .from('blocked_users')
@@ -26,7 +25,6 @@ export const blockUser = async (
       return { success: false, error: error.message };
     }
 
-    console.log('[blockUser] Utilisateur bloqué avec succès');
     return { success: true, error: null };
   } catch (error) {
     console.error('[blockUser] Erreur inattendue:', error);
@@ -42,7 +40,6 @@ export const unblockUser = async (
   blockedId: string
 ): Promise<{ success: boolean; error: string | null }> => {
   try {
-    console.log('[unblockUser] Déblocage utilisateur:', blockerId, '->', blockedId);
 
     const { error } = await supabase
       .from('blocked_users')
@@ -55,7 +52,6 @@ export const unblockUser = async (
       return { success: false, error: error.message };
     }
 
-    console.log('[unblockUser] Utilisateur débloqué avec succès');
     return { success: true, error: null };
   } catch (error) {
     console.error('[unblockUser] Erreur inattendue:', error);

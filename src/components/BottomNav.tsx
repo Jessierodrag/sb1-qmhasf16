@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Globe, PlusSquare, MessageCircle, User } from 'lucide-react';
 import { View, UserType } from '../types';
 import SearchModal from './SearchModal';
@@ -6,7 +7,7 @@ import NewPostModal from './modals/NewPostModal';
 
 interface BottomNavProps {
   currentView: View;
-  setCurrentView: (view: View) => void;
+  setCurrentView: (view: View) => void; // Deprecated, kept for compatibility
   onLocationSelect?: (location: string | null) => void;
   isAuthenticated: boolean;
   onNewPost: (post: { photos: string[]; location: string; tags: string[]; caption: string; }) => void;
@@ -23,15 +24,37 @@ const BottomNav: React.FC<BottomNavProps> = ({
   userType = 'client',
   unreadMessagesCount = 0
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
-  const [activeIcon, setActiveIcon] = useState<string>(currentView);
+  
+  // Détecter la route active depuis l'URL
+  const getActiveIcon = () => {
+    if (location.pathname === '/') return 'home';
+    if (location.pathname === '/messages') return 'messages';
+    if (location.pathname === '/profile' || location.pathname.startsWith('/profile/')) return 'profile';
+    return currentView;
+  };
+  
+  const [activeIcon, setActiveIcon] = useState<string>(getActiveIcon());
 
   const handleViewChange = (view: View) => {
     if (!isAuthenticated && (view === 'messages' || view === 'profile')) {
-      setCurrentView('login');
+      navigate('/login');
     } else {
-      setCurrentView(view);
+      // Map view to route
+      const routeMap: Record<View, string> = {
+        home: '/',
+        login: '/login',
+        profile: '/profile',
+        messages: '/messages',
+        wallet: '/wallet',
+        subscription: '/subscription',
+        admin: '/admin',
+        viewProfile: '/profile' // Will be handled by dynamic routes
+      };
+      navigate(routeMap[view] || '/');
     }
     setActiveIcon(view);
     setShowSearchModal(false);

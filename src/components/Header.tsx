@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Menu, X, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Bell, Menu, X, Check, MapPin } from 'lucide-react';
 import { View, Notification, UserType, Profile } from '../types';
 import { renderFullStars } from '../utils/stars';
 import { formatDistanceToNow } from '../utils/date';
@@ -7,7 +8,7 @@ import { supabase } from '../lib/supabase';
 
 interface HeaderProps {
   currentView: View;
-  setCurrentView: (view: View) => void;
+  setCurrentView: (view: View) => void; // Deprecated, kept for compatibility
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   showNotifications: boolean;
@@ -39,18 +40,19 @@ const Header: React.FC<HeaderProps> = ({
   isAuthenticated,
   onSearchResultClick
 }) => {
+  const navigate = useNavigate();
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
+  // Recherche serveur avec debouncing
   useEffect(() => {
     const searchProfiles = async () => {
       if (searchQuery.trim().length >= 2) {
-        const query = searchQuery.toLowerCase();
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*');
+        const { data, error } = await supabase.rpc('search_profiles', { 
+          query: searchQuery, 
+          max_results: 10 
+        });
 
         if (error) {
           console.error('Search error:', error);
@@ -59,38 +61,26 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         if (data) {
-          const results = data
-            .filter(profile => {
-              const matchName = (profile.name || '').toLowerCase().includes(query);
-              const matchUsername = (profile.username || '').toLowerCase().includes(query);
-              const matchLocation = (profile.location || '').toLowerCase().includes(query);
-              const matchDescription = (profile.description || '').toLowerCase().includes(query);
-              const matchPrestations = (profile.prestations || '').toLowerCase().includes(query);
-              const matchInterests = (profile.interests || []).some((interest: string) =>
-                interest.toLowerCase().includes(query)
-              );
-
-              return matchName || matchUsername || matchLocation || matchDescription || matchPrestations || matchInterests;
-            })
-            .map(p => ({
-              id: p.id,
-              user_id: p.user_id,
-              name: p.name,
-              username: p.username || p.name,
-              location: p.location || '',
-              description: p.description || '',
-              interests: p.interests || [],
-              photos: p.photos || [],
-              physicalInfo: p.physical_info || {},
-              personalInfo: p.personal_info || {},
-              prestations: p.prestations || '',
-              userType: p.user_type === 'professional' ? 'pro' : 'client',
-              rating: 0,
-              reviewCount: 0,
-              price: 0,
-              isOnline: false,
-              lastSeen: new Date()
-            } as Profile));
+          const results = data.map((p: any) => ({
+            id: p.id,
+            user_id: p.user_id,
+            name: p.name,
+            username: p.username || p.name,
+            location: p.location || '',
+            description: p.description || '',
+            interests: [],
+            photos: p.photos || [],
+            physicalInfo: p.physical_info || {},
+            personalInfo: p.personal_info || {},
+            prestations: p.prestations || '',
+            userType: 'pro',
+            rating: p.rating || 0,
+            reviewCount: 0,
+            price: 0,
+            isOnline: false,
+            lastSeen: new Date(),
+            subscription_tier: p.subscription_tier
+          } as Profile));
 
           setSearchResults(results);
           setShowSearchResults(true);
@@ -101,7 +91,12 @@ const Header: React.FC<HeaderProps> = ({
       }
     };
 
-    searchProfiles();
+    // Debouncing: attendre 300ms après la dernière frappe
+    const timeoutId = setTimeout(() => {
+      searchProfiles();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
   useEffect(() => {
@@ -138,7 +133,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto">
         <div className="px-4 py-3 sm:py-4 flex items-center justify-between">
           <button
-            onClick={() => setCurrentView('home')}
+            onClick={() => navigate('/')}
             className="text-xl sm:text-2xl font-bold text-gradient hover:scale-105 transition-transform duration-200 flex items-center gap-2"
           >
             <span className="text-2xl">🔥</span>
@@ -256,8 +251,14 @@ const Header: React.FC<HeaderProps> = ({
                       className="w-12 h-12 rounded-full object-cover"
                     />
                     <div>
-                      <h4 className="font-medium text-gray-200">{profile.name}</h4>
-                      <p className="text-sm text-gray-400">{profile.location}</p>
+                      <h4 className="font-medium text-gray-200">{profile.username || profile.name}</h4>
+                      {profile.username && profile.username !== profile.name && (
+                        <p className="text-xs text-gray-400">{profile.name}</p>
+                      )}
+                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3" />
+                        {profile.location}
+                      </p>
                       {profile.rating > 0 && (
                         <div className="flex items-center gap-1 mt-1">
                           {renderFullStars(profile.rating)}
@@ -299,7 +300,6 @@ const Header: React.FC<HeaderProps> = ({
                 notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    onClick={() => markAsRead(notification.id)}
                     className={`p-4 border-b border-white/5 hover:bg-white/5 transition-all duration-200 cursor-pointer ${
                       !notification.read ? 'bg-white/5' : ''
                     }`}

@@ -31,7 +31,6 @@ export const useDashboardStats = (userId: string | null | undefined) => {
     }
 
     try {
-      console.log('[useDashboardStats] Chargement statistiques pour:', userId);
 
       const [likesResult, reviewsResult, viewsResult] = await Promise.all([
         getReceivedLikesCount(userId),
@@ -45,7 +44,6 @@ export const useDashboardStats = (userId: string | null | undefined) => {
         receivedReviews: reviewsResult.count
       });
 
-      console.log('[useDashboardStats] Statistiques chargées:', {
         views: viewsResult.count,
         likes: likesResult.count,
         reviews: reviewsResult.count

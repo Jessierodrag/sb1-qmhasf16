@@ -70,7 +70,6 @@ export const createPostBoost = async (
       .update({ is_boosted: true })
       .eq('id', postId);
 
-    console.log('Boost created successfully:', boost);
     return { boost, error: null };
   } catch (error) {
     console.error('Create boost error:', error);
@@ -205,7 +204,6 @@ export const updateBoostCity = async (
       throw updateError;
     }
 
-    console.log('Boost city updated successfully');
     return { success: true, error: null };
   } catch (error) {
     console.error('Update boost city error:', error);

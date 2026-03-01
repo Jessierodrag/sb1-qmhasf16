@@ -48,7 +48,6 @@ const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     if (videoRef.current && isVideo) {
       videoRef.current.muted = isMuted;
       videoRef.current.play().catch(err => {
-        console.log('Autoplay bloqué:', err);
       });
     }
   }, [currentIndex, isMuted, isVideo]);

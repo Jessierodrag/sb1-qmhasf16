@@ -267,7 +267,6 @@ const PhotoCarousel: React.FC<PhotoCarouselProps> = ({ photos, thumbnails, class
       if (index === currentIndex) {
         // Jouer la vidéo active
         video.play().catch(err => {
-          console.log('Autoplay bloqué:', err);
         });
       } else {
         // Mettre en pause les autres vidéos

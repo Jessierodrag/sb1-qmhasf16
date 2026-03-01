@@ -58,15 +58,12 @@ export const addReview = async (
   comment: string
 ): Promise<{ review: Review | null; error: ReviewError | null }> => {
   try {
-    console.log('[addReview] Starting with:', { profileId, rating, comment });
 
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('[addReview] User from auth:', user);
 
     if (!user) throw new Error('User not authenticated');
 
     // Check if user already reviewed this profile
-    console.log('[addReview] Checking for existing review');
     const { data: existingReview, error: checkError } = await supabase
       .from('reviews')
       .select('id')
@@ -74,11 +71,9 @@ export const addReview = async (
       .eq('from_user_id', user.id)
       .maybeSingle();
 
-    console.log('[addReview] Existing review check:', { existingReview, checkError });
 
     if (existingReview) {
       // Update existing review
-      console.log('[addReview] Updating existing review:', existingReview.id);
       const { data, error } = await supabase
         .from('reviews')
         .update({
@@ -101,7 +96,6 @@ export const addReview = async (
         `)
         .single();
 
-      console.log('[addReview] Update result:', { data, error });
       if (error) throw error;
 
       const mappedReview: Review = {
@@ -117,7 +111,6 @@ export const addReview = async (
       return { review: mappedReview, error: null };
     } else {
       // Create new review
-      console.log('[addReview] Creating new review with:', {
         to_user_id: profileId,
         from_user_id: user.id,
         rating,
@@ -146,7 +139,6 @@ export const addReview = async (
         `)
         .single();
 
-      console.log('[addReview] Insert result:', { data, error });
       if (error) {
         console.error('[addReview] Insert error details:', {
           message: error.message,
@@ -309,15 +301,12 @@ export const addPostReview = async (
   comment: string
 ): Promise<{ review: PostReview | null; error: ReviewError | null }> => {
   try {
-    console.log('[addPostReview] Starting with:', { postId, rating, comment });
 
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('[addPostReview] User from auth:', user);
 
     if (!user) throw new Error('User not authenticated');
 
     // Check if user already reviewed this post
-    console.log('[addPostReview] Checking for existing review with:', { postId, userId: user.id });
     const { data: existingReview, error: checkError } = await supabase
       .from('post_reviews')
       .select('id')
@@ -325,11 +314,9 @@ export const addPostReview = async (
       .eq('user_id', user.id)
       .maybeSingle();
 
-    console.log('[addPostReview] Existing review check:', { existingReview, checkError });
 
     if (existingReview) {
       // Update existing review
-      console.log('[addPostReview] Updating existing review:', existingReview.id);
       const { data, error } = await supabase
         .from('post_reviews')
         .update({
@@ -350,12 +337,10 @@ export const addPostReview = async (
         `)
         .single();
 
-      console.log('[addPostReview] Update result:', { data, error });
       if (error) throw error;
       return { review: data, error: null };
     } else {
       // Create new review
-      console.log('[addPostReview] Creating new review with:', {
         post_id: postId,
         user_id: user.id,
         rating,
@@ -382,7 +367,6 @@ export const addPostReview = async (
         `)
         .single();
 
-      console.log('[addPostReview] Insert result:', { data, error });
       if (error) {
         console.error('[addPostReview] Insert error details:', {
           message: error.message,

@@ -36,7 +36,6 @@ const Messages: React.FC<MessagesProps> = ({ userProfile, onMessagesRead, onView
     loadConversations();
 
     // S'abonner aux changements des messages et conversations en temps réel
-    console.log('[Messages] Abonnement aux changements pour:', userProfile.user_id);
 
     const messagesChannel = supabase
       .channel('messages-realtime')
@@ -48,7 +47,6 @@ const Messages: React.FC<MessagesProps> = ({ userProfile, onMessagesRead, onView
           table: 'messages'
         },
         (payload) => {
-          console.log('[Messages] Changement de message détecté:', payload);
           loadConversations();
         }
       )
@@ -64,14 +62,12 @@ const Messages: React.FC<MessagesProps> = ({ userProfile, onMessagesRead, onView
           table: 'conversations'
         },
         (payload) => {
-          console.log('[Messages] Changement de conversation détecté:', payload);
           loadConversations();
         }
       )
       .subscribe();
 
     return () => {
-      console.log('[Messages] Nettoyage des abonnements');
       messagesChannel.unsubscribe();
       conversationsChannel.unsubscribe();
     };
@@ -98,7 +94,6 @@ const Messages: React.FC<MessagesProps> = ({ userProfile, onMessagesRead, onView
     setError(null);
 
     try {
-      console.log('[Messages] Chargement conversations pour:', userProfile.user_id);
 
       const { conversations: convs, error: convsError } = await getUserConversations(
         userProfile.user_id
@@ -110,7 +105,6 @@ const Messages: React.FC<MessagesProps> = ({ userProfile, onMessagesRead, onView
 
       setConversations(convs);
       setFilteredConversations(convs);
-      console.log('[Messages] Conversations chargées:', convs.length);
     } catch (err) {
       console.error('[Messages] Erreur:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement');

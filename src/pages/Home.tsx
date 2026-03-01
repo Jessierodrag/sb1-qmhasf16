@@ -33,48 +33,55 @@ const Home: React.FC<HomeProps> = ({
   const [selectedProfileForChat, setSelectedProfileForChat] = useState<UserProfile | null>(null);
   const [dbPosts, setDbPosts] = useState<PostType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [authorProfiles, setAuthorProfiles] = useState<Record<string, Profile>>({});
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const pageSize = 10;
 
   // Charger les publications depuis la base de données
-  const loadPosts = async () => {
-    setIsLoading(true);
+  const loadPosts = async (page: number = 0, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     setError(null);
     
     try {
-      const { posts, error } = await getPosts(selectedLocation || undefined);
+      const { posts, error } = await getPosts(
+        selectedLocation || undefined,
+        undefined,
+        page,
+        pageSize
+      );
       
       if (error) {
         throw new Error(error.message);
       }
       
-      setDbPosts(posts);
+      // Si on reçoit moins de posts que pageSize, il n'y a plus de pages
+      setHasMore(posts.length === pageSize);
       
-      // Charger les profils des auteurs
-      const authorIds = posts.map(post => post.user_id).filter(Boolean);
-      const uniqueAuthorIds = [...new Set(authorIds)];
-
-      const authorProfilesMap: Record<string, Profile> = {};
-      for (const authorId of uniqueAuthorIds) {
-        if (authorId) {
-          try {
-            const { profile, error } = await getProfileById(authorId);
-            if (!error && profile) {
-              authorProfilesMap[authorId] = userProfileToProfile(profile);
-            }
-          } catch (err) {
-            console.error(`Erreur lors du chargement du profil ${authorId}:`, err);
-          }
-        }
+      if (append) {
+        setDbPosts(prev => [...prev, ...posts]);
+      } else {
+        setDbPosts(posts);
       }
-
-      setAuthorProfiles(authorProfilesMap);
+      // Les profils des auteurs sont déjà inclus dans le JOIN (post.user)
     } catch (err) {
       console.error('Erreur lors du chargement des publications:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement des publications');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
+  };
+
+  const loadMorePosts = () => {
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    loadPosts(nextPage, true);
   };
 
   // Charger les publications au montage et lorsque la localisation change
@@ -85,17 +92,14 @@ const Home: React.FC<HomeProps> = ({
   // Écouter les événements de création, modification et suppression de post
   useEffect(() => {
     const handlePostCreated = () => {
-      console.log('Post créé, rechargement des publications...');
       loadPosts();
     };
 
     const handlePostDeleted = () => {
-      console.log('Post supprimé, rechargement des publications...');
       loadPosts();
     };
 
     const handlePostUpdated = () => {
-      console.log('Post modifié, rechargement des publications...');
       loadPosts();
     };
 
@@ -111,7 +115,6 @@ const Home: React.FC<HomeProps> = ({
   }, [selectedLocation]);
 
   const handleContact = async (profile: Profile) => {
-    console.log('[handleContact] Appel avec profile:', {
       id: profile.id,
       name: profile.name,
       userId: profile.userId
@@ -119,7 +122,6 @@ const Home: React.FC<HomeProps> = ({
 
     // Afficher le modal de connexion si l'utilisateur n'est pas connecté
     if (!isAuthenticated || !userProfile) {
-      console.log('[handleContact] Utilisateur non authentifié');
       setShowLoginPrompt(true);
       return;
     }
@@ -133,7 +135,6 @@ const Home: React.FC<HomeProps> = ({
 
     // Récupérer le UserProfile complet de l'autre utilisateur
     try {
-      console.log('[handleContact] Récupération du profil pour userId:', profile.userId);
       const { profile: otherUserProfile, error } = await getProfileById(profile.userId);
 
       if (error || !otherUserProfile) {
@@ -142,7 +143,6 @@ const Home: React.FC<HomeProps> = ({
         return;
       }
 
-      console.log('[handleContact] Profil récupéré, ouverture du chat avec:', otherUserProfile.username);
       setSelectedProfileForChat(otherUserProfile);
       setShowChatModal(true);
     } catch (err) {
@@ -159,23 +159,22 @@ const Home: React.FC<HomeProps> = ({
 
   // Convertir un post de la base de données en profil pour l'affichage
   const dbPostToProfile = (post: PostType): Profile => {
-    const authorProfile = post.user_id && authorProfiles[post.user_id]
-      ? authorProfiles[post.user_id]
-      : null;
+    // Utiliser directement post.user qui vient du JOIN (pas de N+1 query)
+    const author = post.user;
 
     return {
       id: parseInt(post.id),
-      name: authorProfile?.name || post.user?.name || 'Utilisateur',
+      name: author?.name || 'Utilisateur',
       location: post.location,
-      premium: authorProfile?.premium || false,
-      online: authorProfile?.online || true,
+      premium: false,
+      online: true,
       interests: post.tags || [],
       description: post.caption,
-      rating: authorProfile?.rating || post.user?.rating || 0,
-      imageUrl: authorProfile?.imageUrl || authorProfile?.photos?.[0] || post.user?.photos?.[0] || '',
+      rating: author?.rating || 0,
+      imageUrl: author?.photos?.[0] || '',
       photos: post.photos || [],
       thumbnails: post.thumbnails || [],
-      physicalInfo: authorProfile?.physicalInfo || post.user?.physicalInfo || {
+      physicalInfo: author?.physicalInfo || {
         sexe: "",
         ethnique: "",
         nationalite: "",
@@ -190,20 +189,20 @@ const Home: React.FC<HomeProps> = ({
         tour_poitrine: "",
         epilation: ""
       },
-      personalInfo: authorProfile?.personalInfo || post.user?.personalInfo || {
+      personalInfo: author?.personalInfo || {
         alcool: "",
         fumeur: "",
         langues: [],
         orientation: "",
         origine: ""
       },
-      prestations: authorProfile?.prestations || post.user?.prestations || "",
-      reviews: authorProfile?.reviews || [],
+      prestations: author?.prestations || "",
+      reviews: [],
       likes: post.likes_count || 0,
       comments: post.comments_count || 0,
       isLiked: post.is_liked,
       userId: post.user_id,
-      subscription_tier: authorProfile?.subscription_tier || post.user?.subscription_tier
+      subscription_tier: author?.subscription_tier
     };
   };
 
@@ -230,19 +229,13 @@ const Home: React.FC<HomeProps> = ({
                 key={`db-post-${post.id}`}
                 profile={dbPostToProfile(post)}
                 onContact={() => {
-                  if (post.user_id && authorProfiles[post.user_id]) {
-                    handleContact(authorProfiles[post.user_id]);
-                  } else {
-                    const tempProfile = dbPostToProfile(post);
-                    handleContact(tempProfile);
-                  }
+                  const tempProfile = dbPostToProfile(post);
+                  handleContact(tempProfile);
                 }}
                 isAuthenticated={isAuthenticated}
                 postId={post.id}
                 onPostDeleted={handlePostDeleted}
-                authorPhoto={post.user?.photos[0] || (post.user_id && authorProfiles[post.user_id]
-                  ? authorProfiles[post.user_id].photos[0]
-                  : '')}
+                authorPhoto={post.user?.photos[0] || ''}
                 userProfile={userProfile}
                 isBoosted={post.is_boosted || false}
               />

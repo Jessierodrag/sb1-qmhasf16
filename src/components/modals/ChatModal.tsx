@@ -65,7 +65,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
   useEffect(() => {
     if (!conversation) return;
 
-    console.log('[ChatModal] Configuration de la subscription pour conversation:', conversation.id);
 
     // S'abonner aux changements dans la table messages
     const channel = supabase
@@ -79,7 +78,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
           filter: `conversation_id=eq.${conversation.id}`
         },
         (payload) => {
-          console.log('[ChatModal] Nouveau message reçu:', payload);
           const newMessage = payload.new as Message;
 
           // Ajouter le nouveau message à la liste
@@ -101,7 +99,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
     // Nettoyer la subscription au démontage
     return () => {
-      console.log('[ChatModal] Nettoyage de la subscription');
       supabase.removeChannel(channel);
     };
   }, [conversation, currentUserProfile.id, currentUserProfile.user_id]);
@@ -111,12 +108,10 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setError(null);
 
     try {
-      console.log('[ChatModal] currentUserProfile:', {
         id: currentUserProfile.id,
         user_id: currentUserProfile.user_id,
         name: currentUserProfile.name
       });
-      console.log('[ChatModal] otherUserProfile:', {
         id: otherUserProfile.id,
         user_id: otherUserProfile.user_id,
         name: otherUserProfile.name
@@ -125,7 +120,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
       const currentUserId = currentUserProfile.user_id || currentUserProfile.id;
       const otherUserId = otherUserProfile.user_id || otherUserProfile.id;
 
-      console.log('[ChatModal] IDs utilisés:', {
         currentUserId,
         otherUserId
       });
@@ -145,7 +139,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
       }
 
       setConversation(conv);
-      console.log('[ChatModal] Conversation chargée:', conv.id);
 
       // Récupérer les messages
       const { messages: msgs, error: msgsError } = await getConversationMessages(conv.id);
@@ -155,7 +148,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
       }
 
       setMessages(msgs);
-      console.log('[ChatModal] Messages chargés:', msgs.length);
     } catch (err) {
       console.error('[ChatModal] Erreur:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
@@ -213,7 +205,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setError(null);
 
     try {
-      console.log('[ChatModal] Envoi message');
 
       const currentUserId = currentUserProfile.user_id || currentUserProfile.id;
       if (!currentUserId) {
@@ -234,7 +225,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
       // Cela évite les doublons
       setMessageInput('');
 
-      console.log('[ChatModal] Message envoyé:', message.id);
     } catch (err) {
       console.error('[ChatModal] Erreur envoi:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'envoi');

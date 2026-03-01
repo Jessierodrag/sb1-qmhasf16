@@ -61,7 +61,6 @@ export const useNotifications = (userId: string | null | undefined) => {
     if (!userId) return;
 
     // S'abonner aux changements en temps réel
-    console.log('[useNotifications] Abonnement aux notifications pour:', userId);
 
     const notificationsSubscription = supabase
       .channel('notifications-changes')
@@ -74,14 +73,12 @@ export const useNotifications = (userId: string | null | undefined) => {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
-          console.log('[useNotifications] Changement détecté:', payload);
           loadNotifications();
         }
       )
       .subscribe();
 
     return () => {
-      console.log('[useNotifications] Nettoyage abonnement');
       notificationsSubscription.unsubscribe();
     };
   }, [loadNotifications, userId]);
